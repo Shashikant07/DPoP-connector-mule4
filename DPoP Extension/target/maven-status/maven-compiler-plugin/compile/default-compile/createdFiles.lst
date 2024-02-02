@@ -1,0 +1,3 @@
+org\mule\extension\DPoP\internal\DPoPConfiguration.class
+org\mule\extension\DPoP\internal\DPoPExtension.class
+org\mule\extension\DPoP\internal\DPoPOperations.class

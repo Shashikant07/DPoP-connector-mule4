@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension-documentation>
+    <configs>
+        <config name="config">
+            <description><![CDATA[Default configuration]]></description>
+            <parameters>
+                <parameter name="privateKey">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="publicKey">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="filePath">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="expirationPolicy">
+                    <description><![CDATA[Configures the minimum amount of time that a dynamic configuration instance can remain idle before the runtime considers it eligible for expiration. This does not mean that the platform will expire the instance at the exact moment that it becomes eligible. The runtime will actually purge the instances when it sees it fit.]]></description>
+                </parameter>
+            </parameters>
+        </config>
+    </configs>
+    <connections/>
+    <extension name="DPoP">
+        <description><![CDATA[]]></description>
+        <parameters/>
+    </extension>
+    <operations>
+        <operation name="DpopToken">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="payload">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="url">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="method">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="outputMimeType">
+                    <description><![CDATA[The mime type of the payload that this operation outputs.]]></description>
+                </parameter>
+                <parameter name="target">
+                    <description><![CDATA[The name of a variable on which the operation's output will be placed]]></description>
+                </parameter>
+                <parameter name="targetValue">
+                    <description><![CDATA[An expression that will be evaluated against the operation's output and the outcome of that expression will be stored in the target variable]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+    </operations>
+    <sources/>
+    <types/>
+</extension-documentation>
