@@ -1,13 +1,9 @@
 package org.mule.extension.DPoP.internal;
 
-import static org.mule.runtime.extension.api.annotation.param.MediaType.ANY;
-
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -20,14 +16,10 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import javax.crypto.Cipher;
-import javax.crypto.spec.SecretKeySpec;
+//import java.util.stream.Collectors;
 import javax.net.ssl.HttpsURLConnection;
-import org.apache.commons.io.IOUtils;
 import org.mule.runtime.extension.api.annotation.Alias;
 import org.mule.runtime.extension.api.annotation.error.Throws;
 import org.mule.runtime.extension.api.annotation.param.MediaType;
@@ -35,7 +27,6 @@ import org.mule.runtime.extension.api.annotation.param.ParameterGroup;
 import org.mule.runtime.extension.api.exception.ModuleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
 
 import static org.mule.runtime.extension.api.annotation.param.MediaType.*;
 import com.auth0.jwt.JWT;
@@ -78,24 +69,15 @@ public class DPoPOperations {
 	@MediaType(value = ANY, strict = false)
 	private static String noPayloadGenerateDPoP(String privateKey, String publicKey, String url, String httpMethod) {
 		String dpopToken;
-		dpopToken = generateDPoP(privateKey, publicKey, url, httpMethod, null, null, null, null, null, null, null);
+		dpopToken = generateDPoP(privateKey, publicKey, url, httpMethod);
 
 		return dpopToken;
 	}
 
-	@MediaType(value = ANY, strict = false)
-	private static String convertMapToString(Map<String, ?> map) {
-		String mapAsString = map.keySet().stream().map(key -> key + "=" + map.get(key))
-				.collect(Collectors.joining(", ", "{", "}"));
-		return mapAsString;
-	}
 
 	// using auth0 generate dpop
 	@MediaType(value = ANY, strict = false)
-	private static String generateDPoP(String privateKey, String publicKey, String url, String httpMethods,
-			String requestBodyHashs, List<String> requestHeaderKeyLists, String requestHeaderHashs,
-			List<String> selectivePayloadKeyLists, String selectivePayloadHashs, List<String> formParamKeyLists,
-			String formParamHashs) {
+	private static String generateDPoP(String privateKey, String publicKey, String url, String httpMethods) {
 
 		String dpopToken = null;
 		try {
@@ -134,21 +116,6 @@ public class DPoPOperations {
 			builder.withJWTId(UUID.randomUUID().toString()).withHeader(headerClaim)
 					.withIssuedAt(new Date(System.currentTimeMillis())).withClaim("htm", httpMethods)
 					.withClaim("htu", url);
-
-			if (requestBodyHashs != null)
-				builder.withClaim("requestBodyHashs", requestBodyHashs);
-			else if (selectivePayloadHashs != null && selectivePayloadKeyLists != null) {
-				builder.withClaim("selectivePayloadHash", selectivePayloadHashs);
-				builder.withClaim("selectivePayloadKeyLists", selectivePayloadKeyLists);
-			} else if (formParamHashs != null && formParamKeyLists != null) {
-				builder.withClaim(" formParamHashs", formParamHashs);
-				builder.withClaim("formParamKeyLists", formParamKeyLists);
-			}
-
-			if (requestHeaderHashs != null && requestHeaderKeyLists != null) {
-				builder.withClaim("requestHeaderKeyLists", requestHeaderKeyLists);
-				builder.withClaim("requestHeaderHash", requestHeaderHashs);
-			}
 
 			dpopToken = builder.sign(algorithm);
 
@@ -208,32 +175,37 @@ public class DPoPOperations {
 	}
 
 	/* Method for building response */
-	@MediaType(value = APPLICATION_JSON)
-	private String getHttpResponse(URLConnection con,int status) throws UnsupportedEncodingException, IOException {
+	@MediaType(value = APPLICATION_JSON,strict = true)
+	private static String getHttpResponse(URLConnection con,int status) throws UnsupportedEncodingException, IOException {
 		StringBuilder response = null;
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "utf-8"))) {
+		HttpsURLConnection con1 = (HttpsURLConnection) con;
+		BufferedReader br = null;
+		if(status >= 200 && status <= 299) 
+			 br = new BufferedReader(new InputStreamReader(con.getInputStream()));
+		
+		else 
+			 br = new BufferedReader(new InputStreamReader(con1.getErrorStream()));
+		
 			response = new StringBuilder();
 			String responseLine = null;
 			while ((responseLine = br.readLine()) != null) {
 				response.append(responseLine.trim());
 			}
-		}
-		catch(Exception e) {
-			if(status == 404) {
-				throw new ModuleException("Requested API resource path does not exist. Please review Fiserv API documentation at 'https://developer.fiserv.com/merchants'.\"",DPoPError.NOT_FOUND);
+			
+			if(!(status >= 200 && status <= 299)) {
+			if(status == 404)
+				 throw new ModuleException(response.toString(),DPoPError.NOT_FOUND);
+		     else if(status == 403) 
+		    	 throw new ModuleException(response.toString(),DPoPError.FORBIDDEN);
+		     else if(status == 500) 
+				  throw new ModuleException(response.toString(),DPoPError.INTERNAL_SERVER_ERROR);
+			else 
+				throw new ModuleException(response.toString(),DPoPError.INTERNAL_SERVER_ERROR);
 			}
-			else if(status == 403) {
-				throw new ModuleException("Invalid DPoP",DPoPError.FORBIDDEN);
-			}
-			else if(status == 500) {
-				throw new ModuleException("Invalid username and password",DPoPError.INTERNAL_SERVER_ERROR);
-			}
-			else {
-				throw new ModuleException("Something went wrong while generating access token", DPoPError.INTERNAL_SERVER_ERROR);
-			}
-		}
+			
 		return response.toString();
-	}
 
 }
+}
+
 
